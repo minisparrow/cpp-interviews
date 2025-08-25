@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C++面试八股文学习助手</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- PWA支持 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="C++面试助手">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9InVybCgjZ3JhZGllbnQwX2xpbmVhcl8xXzEpIi8+CjxwYXRoIGQ9Ik05NiA0OEw4MCA2NEw5NiA4MEwxMTIgNjRMOTYgNDhaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNNzIgOTZINzJWMTIwSDEyMFY5Nkg3MloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik04MCA4MEw2NCA5Nkw4MCAxMTJMOTYgOTZMODAgODBaIiBmaWxsPSJ3aGl0ZSIgZmlsbC1vcGFjaXR5PSIwLjciLz4KPHA+YXRoIGQ9Ik0xMTIgODBMMTI4IDk2TDExMiAxMTJMOTYgOTZMMTEyIDgwWiIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC43Ii8+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50MF9saW5lYXJfMV8xIiB4MT0iMCIgeTE9IjAiIHgyPSIxOTIiIHkyPSIxOTIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KPHN0b3Agc3RvcC1jb2xvcj0iIzY2N2VlYSIvPgo8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3NjRiYTIiLz4KPC9saW5lYXJHcmFkaWVudD4KPC9kZWZzPgo8L3N2Zz4K">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>C++面试八股文学习助手</h1>
+            <p class="subtitle">系统化学习C++面试知识点，支持语音播放</p>
+        </header>
+
+        <nav class="nav">
+            <button class="nav-btn active" data-category="all">全部</button>
+            <button class="nav-btn" data-category="basic">基础语法</button>
+            <button class="nav-btn" data-category="oop">面向对象</button>
+            <button class="nav-btn" data-category="stl">STL容器</button>
+            <button class="nav-btn" data-category="memory">内存管理</button>
+            <button class="nav-btn" data-category="advanced">高级特性</button>
+            <button class="nav-btn" data-category="algorithm">算法</button>
+        </nav>
+
+        <div class="controls">
+            <button id="playAll" class="control-btn primary">
+                <span class="icon">🎵</span>
+                播放全部
+            </button>
+            <button id="pauseBtn" class="control-btn">
+                <span class="icon">⏸️</span>
+                暂停
+            </button>
+            <button id="stopBtn" class="control-btn">
+                <span class="icon">⏹️</span>
+                停止
+            </button>
+            <div class="speed-control">
+                <label for="speedRange">语速:</label>
+                <input type="range" id="speedRange" min="0.5" max="2" step="0.1" value="1">
+                <span id="speedValue">1.0x</span>
+            </div>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="搜索面试题...">
+            <button id="searchBtn" class="search-btn">🔍</button>
+        </div>
+
+        <main class="main">
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-number" id="totalQuestions">0</span>
+                    <span class="stat-label">题目总数</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="studiedQuestions">0</span>
+                    <span class="stat-label">已学习</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="favoriteQuestions">0</span>
+                    <span class="stat-label">已收藏</span>
+                </div>
+            </div>
+
+            <div class="questions-container" id="questionsContainer">
+                <!-- 题目列表将通过JavaScript动态生成 -->
+            </div>
+        </main>
+
+        <div class="current-playing" id="currentPlaying" style="display: none;">
+            <div class="playing-info">
+                <span class="playing-title" id="playingTitle">正在播放...</span>
+                <div class="playing-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+            </div>
+            <button class="close-playing" id="closePlaying">×</button>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+    
+    <!-- PWA Service Worker注册 -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
