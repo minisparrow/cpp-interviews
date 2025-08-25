@@ -24,13 +24,70 @@ class InterviewApp {
 
     // 初始化语音设置
     initSpeechSettings() {
-        // 设置语速控制
+        // 语速控制
         const speedRange = document.getElementById('speedRange');
         const speedValue = document.getElementById('speedValue');
         
         speedRange.addEventListener('input', (e) => {
             speedValue.textContent = e.target.value + 'x';
         });
+
+        // 音调控制
+        const pitchRange = document.getElementById('pitchRange');
+        const pitchValue = document.getElementById('pitchValue');
+        
+        pitchRange.addEventListener('input', (e) => {
+            pitchValue.textContent = e.target.value;
+        });
+
+        // 语音选择器
+        const voiceSelect = document.getElementById('voiceSelect');
+        
+        // 加载可用语音
+        const loadVoices = () => {
+            const voices = this.speechSynthesis.getVoices();
+            voiceSelect.innerHTML = '<option value="">自动选择最佳语音</option>';
+            
+            // 过滤并排序中文语音
+            const chineseVoices = voices.filter(voice => 
+                voice.lang.includes('zh') || 
+                voice.name.includes('Chinese') ||
+                voice.name.includes('中文') ||
+                voice.lang.includes('cmn')
+            ).sort((a, b) => {
+                // 优先级排序
+                const priority = {
+                    'Ting-Ting': 10, 'Sin-ji': 9, 'Mei-Jia': 8,
+                    'zh-CN-Standard-A': 7, 'zh-CN-Standard-B': 6,
+                    'Microsoft Huihui': 5, 'Microsoft Yaoyao': 4
+                };
+                
+                const aPriority = Object.keys(priority).find(key => a.name.includes(key)) || 0;
+                const bPriority = Object.keys(priority).find(key => b.name.includes(key)) || 0;
+                
+                return (priority[bPriority] || 0) - (priority[aPriority] || 0);
+            });
+            
+            chineseVoices.forEach(voice => {
+                const option = document.createElement('option');
+                option.value = voice.name;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                voiceSelect.appendChild(option);
+            });
+            
+            // 如果有高质量语音，自动选择
+            if (chineseVoices.length > 0) {
+                const bestVoice = chineseVoices[0];
+                voiceSelect.value = bestVoice.name;
+            }
+        };
+        
+        // 语音加载完成后设置
+        if (this.speechSynthesis.getVoices().length > 0) {
+            loadVoices();
+        } else {
+            this.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+        }
     }
 
     // 绑定事件监听器
@@ -227,7 +284,9 @@ class InterviewApp {
 
         this.stopSpeech(); // 停止当前播放
 
-        const textToSpeak = `题目：${question.title}。问题：${question.question}。答案：${this.cleanTextForSpeech(question.answer)}`;
+        // 优化朗读文本结构，更自然的表达
+        const cleanAnswer = this.cleanTextForSpeech(question.answer);
+        const textToSpeak = `${question.title}。${question.question}。答案是：${cleanAnswer}`;
         
         this.speakText(textToSpeak, question.title);
         this.markAsStudied(questionId);
@@ -265,19 +324,51 @@ class InterviewApp {
 
         this.currentUtterance = new SpeechSynthesisUtterance(text);
         
-        // 设置语音参数
+        // 设置语音参数 - 使用用户选择的设置
         const speedRange = document.getElementById('speedRange');
-        this.currentUtterance.rate = parseFloat(speedRange.value);
-        this.currentUtterance.pitch = 1;
-        this.currentUtterance.volume = 1;
+        const pitchRange = document.getElementById('pitchRange');
+        const voiceSelect = document.getElementById('voiceSelect');
         
-        // 尝试设置中文语音
+        this.currentUtterance.rate = parseFloat(speedRange.value);
+        this.currentUtterance.pitch = parseFloat(pitchRange.value);
+        this.currentUtterance.volume = 0.9;
+        
+        // 语音选择 - 优先使用用户选择的语音
         const voices = this.speechSynthesis.getVoices();
-        const chineseVoice = voices.find(voice => 
-            voice.lang.includes('zh') || voice.name.includes('Chinese')
-        );
-        if (chineseVoice) {
-            this.currentUtterance.voice = chineseVoice;
+        let selectedVoice = null;
+        
+        if (voiceSelect.value) {
+            // 使用用户选择的语音
+            selectedVoice = voices.find(voice => voice.name === voiceSelect.value);
+        } else {
+            // 自动选择最佳语音
+            const preferredVoices = [
+                'Ting-Ting', 'Sin-ji', 'Mei-Jia',
+                'zh-CN-Standard-A', 'zh-CN-Standard-B', 'zh-CN-Standard-C', 'zh-CN-Standard-D',
+                'Microsoft Huihui Desktop', 'Microsoft Yaoyao Desktop'
+            ];
+            
+            for (const voiceName of preferredVoices) {
+                selectedVoice = voices.find(voice => 
+                    voice.name.includes(voiceName) || voice.voiceURI.includes(voiceName)
+                );
+                if (selectedVoice) break;
+            }
+            
+            // 如果没找到，则找任何中文语音
+            if (!selectedVoice) {
+                selectedVoice = voices.find(voice => 
+                    voice.lang.includes('zh') || 
+                    voice.name.includes('Chinese') ||
+                    voice.name.includes('中文') ||
+                    voice.lang.includes('cmn')
+                );
+            }
+        }
+        
+        if (selectedVoice) {
+            this.currentUtterance.voice = selectedVoice;
+            console.log(`使用语音: ${selectedVoice.name} (${selectedVoice.lang})`);
         }
 
         // 事件监听
@@ -303,15 +394,48 @@ class InterviewApp {
         this.speechSynthesis.speak(this.currentUtterance);
     }
 
-    // 清理文本用于语音播放
+    // 清理文本用于语音播放 - 优化为更自然的朗读
     cleanTextForSpeech(text) {
-        // 移除代码块和标记
-        text = text.replace(/```[\s\S]*?```/g, '代码示例');
-        text = text.replace(/`[^`]+`/g, '代码');
+        // 移除代码块和标记，并添加适当的停顿
+        text = text.replace(/```[\s\S]*?```/g, '，这里有一段代码示例，');
+        text = text.replace(/`([^`]+)`/g, '，$1，');
         text = text.replace(/\*\*(.*?)\*\*/g, '$1');
-        text = text.replace(/^\s*\d+\.\s*/gm, '');
-        text = text.replace(/^\s*-\s*/gm, '');
-        text = text.replace(/\n+/g, '。');
+        
+        // 处理列表项，添加自然的停顿
+        text = text.replace(/^\s*\d+\.\s*/gm, '第$1点：');
+        text = text.replace(/^\s*-\s*/gm, '，另外，');
+        
+        // 优化标点符号，增加自然停顿
+        text = text.replace(/[:：]/g, '，也就是说，');
+        text = text.replace(/[;；]/g, '，');
+        text = text.replace(/[.。]/g, '。');
+        text = text.replace(/[!！]/g, '！');
+        text = text.replace(/[?？]/g, '？');
+        
+        // 处理换行，添加适当停顿
+        text = text.replace(/\n\n+/g, '。接下来，');
+        text = text.replace(/\n+/g, '，');
+        
+        // 处理技术术语，添加解释性停顿
+        text = text.replace(/C\+\+/g, 'C加加');
+        text = text.replace(/STL/g, '标准模板库');
+        text = text.replace(/const/g, '常量');
+        text = text.replace(/static/g, '静态');
+        text = text.replace(/virtual/g, '虚');
+        text = text.replace(/template/g, '模板');
+        text = text.replace(/namespace/g, '命名空间');
+        text = text.replace(/nullptr/g, '空指针');
+        
+        // 移除多余的标点符号
+        text = text.replace(/[,，]{2,}/g, '，');
+        text = text.replace(/[.。]{2,}/g, '。');
+        
+        // 确保句子以适当的标点结尾
+        text = text.trim();
+        if (!text.match(/[。！？]$/)) {
+            text += '。';
+        }
+        
         return text;
     }
 
